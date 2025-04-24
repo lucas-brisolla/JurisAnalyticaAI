@@ -1,0 +1,45 @@
+# docker-compose.yml
+version: '3.8'
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-assistente_juridico}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # Expor apenas se necessário acesso externo ao DB
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres_db
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@postgres_db:5432/${DB_NAME:-assistente_juridico}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-your_secret_key}
+      # Outras variáveis de ambiente (AI Service URL, S3 Keys, etc.)
+    volumes:
+      - ./backend/src:/app/src # Hot reload para desenvolvimento
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000" # Porta padrão do React dev server
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src # Hot reload
+
+  # ai_service: # Se estiver usando um microserviço
+  #   build: ./ai_service
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     # Variáveis para o serviço de IA
+
+volumes:
+  postgres_data:
